@@ -1,0 +1,3 @@
+
+class RequestFailed(Exception):
+    pass

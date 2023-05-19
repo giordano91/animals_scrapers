@@ -1,0 +1,26 @@
+version: '3.6'
+services:
+  mysql_db:
+    image: mysql:8.0
+    restart: always
+#      env_file:
+#        - env_files/.env_postgres
+    environment:
+      - MYSQL_DATABASE="charlie_db"
+      - MYSQL_USER="gio2"
+      - MYSQL_PASSWORD="charlie2"
+      - MYSQL_ROOT_PASSWORD="charlie"
+    ports:
+      - 13306:3306
+    volumes:
+      # - mysql_db:/var/lib/mysql
+      - ./init_files:/docker-entrypoint-initdb.d
+  subito_it_scraper:
+    build:
+      context: .
+      dockerfile: ./docker_files/subito_it_scraper.Dockerfile
+    command:
+      - python
+      - scrapers/subito_it/start_subito_it_scraper.py
+volumes:
+  db:
