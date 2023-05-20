@@ -1,5 +1,7 @@
+import schedule
 import time
 
+from scrapers.common.exceptions import DbConnectionError
 from subito_it_scraper import SubitoItScraper
 
 
@@ -17,7 +19,14 @@ for time_to_sleep in retries:
     else:
         break
 else:
-    raise ConnectionRefusedError
+    raise DbConnectionError("Impossible to connect to the database, abort!")
 
-print(f"Starting to scrape...")
+# run the scraper and schedule it every 6 hours
 scraper.scrape()
+schedule.every(6).hours.do(scraper.scrape)
+
+# apply all the pending schedules
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
