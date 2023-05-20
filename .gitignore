@@ -121,7 +121,7 @@ celerybeat.pid
 
 # Environments
 .env
-env_files/.env_postgres
+env_files/.env_mysql
 .venv
 env/
 venv/

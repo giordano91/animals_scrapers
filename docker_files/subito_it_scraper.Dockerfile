@@ -10,3 +10,6 @@ COPY scrapers/common scrapers/common
 
 RUN mkdir -p scrapers/subito_it
 COPY scrapers/subito_it scrapers/subito_it
+
+ENV PYTHONPATH "${PYTHONPATH}:/scrapers"
+ENV PYTHONUNBUFFERED 1
