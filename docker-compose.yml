@@ -22,3 +22,15 @@ services:
     command:
       - python
       - scrapers/subito_it/start_subito_it_scraper.py
+
+  annunci_animali_scraper:
+    build:
+      context: .
+      dockerfile: ./docker_files/annunci_animali_scraper.Dockerfile
+    env_file:
+      - env_files/.env_mysql
+    depends_on:
+      - mysql_db
+    command:
+      - python
+      - scrapers/annunci_animali/start_annunci_animali_scraper.py

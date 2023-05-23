@@ -2,25 +2,14 @@ import datetime
 
 from bs4 import BeautifulSoup
 
-from scrapers.common.db_manager import DbManager
+from scrapers.common.common_scrapers import BaseScraper
 from scrapers.common.exceptions import RequestFailed
-from scrapers.common.requests_manager import RequestsManager
 from scrapers.common.constants import ITALIAN_MONTHS
 
 
-class SubitoItScraper:
+class SubitoItScraper(BaseScraper):
 
-    TABLE_NAME = "subito_it"
-    SP_NAME = "feed_mv_external_ads"
-
-    def __init__(self, urls_list):
-        self.urls_list = urls_list
-        self.page_number = 1
-        self.results = []
-
-        # init objects
-        self.requests_manager = RequestsManager()
-        self.db_manager = DbManager()
+    SOURCE_NAME = "subito_it"
 
     def scrape(self):
         print(f"Starting to scrape...")
@@ -49,7 +38,7 @@ class SubitoItScraper:
                 # since we don't want to loose data, clean old records only during the first request
                 # and if it returns something
                 if is_first_request is True:
-                    self.db_manager.truncate_table(self.TABLE_NAME)
+                    self.db_manager.delete_records(self.SOURCE_NAME)
                     is_first_request = False
 
                 for post in posts_list:
@@ -66,6 +55,9 @@ class SubitoItScraper:
                     post_title = soup_detail_page.find("h1", class_="AdInfo_ad-info__title__7jXnY")
                     if post_title:
                         post_title = post_title.text
+                    else:
+                        print("Skipping post because mandatory attributes are null")
+                        continue
 
                     post_date = soup_detail_page.find("span", class_="index-module_insertion-date__MU4AZ")
                     if post_date:
@@ -111,6 +103,10 @@ class SubitoItScraper:
                     if post_description:
                         post_description = post_description.text
 
+                    price = soup_detail_page.find("p", class_="index-module_price__N7M2x")
+                    if price:
+                        price = price.text
+
                     post_id = soup_detail_page.find("span", class_="AdInfo_ad-info__id__g3sz1")
                     if post_id:
                         post_id = post_id.text
@@ -118,20 +114,13 @@ class SubitoItScraper:
 
                     link_image = soup_detail_page.find("img", class_="Carousel_image__3muz6")
                     if link_image:
-                        link_image = link_image.get("src", "-")
+                        link_image = link_image.get("src")
 
-                    if not (post_title or post_date or post_place or post_category or post_link):
-                        print("Skipping post because mandatory attributes are null")
-                        continue
-
-                    self.results.append((post_title, post_date, post_place, post_category, post_description, post_id,
-                                         post_link, link_image))
+                    self.results.append((post_title, post_date, post_place, post_category, post_description, price,
+                                         post_id, post_link, link_image, self.SOURCE_NAME))
 
                 self.page_number += 1
 
                 if self.page_number % 20 == 0:
-                    self.db_manager.insert_data(table_name=self.TABLE_NAME, rows_list=self.results)
+                    self.db_manager.insert_data(rows_list=self.results)
                     self.results = []
-
-        print("Running store procedure...")
-        self.db_manager.run_store_procedure(self.SP_NAME)
