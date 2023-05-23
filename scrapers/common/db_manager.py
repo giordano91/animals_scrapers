@@ -1,8 +1,13 @@
 import os
+from queue import Queue
+from threading import Thread
+
 import mysql.connector
 
 
 class DbManager:
+
+    _instance = None
 
     def __init__(self):
         self.db_connection = mysql.connector.connect(
@@ -14,23 +19,41 @@ class DbManager:
         )
         self.cursor = self.db_connection.cursor()
 
-    def insert_data(self, table_name, rows_list):
-        q = "INSERT INTO {} " \
-            "(title, date, place, category, description, post_id, link_post, link_image) VALUES " \
-            "(%s, %s, %s, %s, %s, %s, %s, %s);".format(table_name)
+        # init queue mechanism
+        # in this way the db manager is shared between all the services
+        self.queue = Queue()
+        self.worker_thread = Thread(target=self._process_queue)
+        self.worker_thread.start()
 
-        self.cursor.executemany(q, rows_list)
-        self.db_connection.commit()
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+        return cls._instance
 
-    def truncate_table(self, table_name):
-        q = f"TRUNCATE {table_name}"
-        self.cursor.execute(q)
-        self.db_connection.commit()
+    def _process_queue(self):
+        while True:
+            data_dict = self.queue.get()
+            query = data_dict.get("query")
+            params = data_dict.get("params")
 
-    def clean_and_insert_data(self, table_name, rows_list):
-        self.truncate_table(table_name)
-        self.insert_data(table_name, rows_list)
+            if params:
+                self.cursor.executemany(query, params)
+            else:
+                self.cursor.execute(query)
 
-    def run_store_procedure(self, sp_name):
-        self.cursor.callproc(sp_name)
-        self.db_connection.commit()
+            self.db_connection.commit()
+            self.queue.task_done()
+
+    def insert_data(self, rows_list):
+        q = "INSERT INTO ads " \
+            "(title, date, place, category, description, price, post_id, link_post, link_image, source) VALUES " \
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+        self.queue.put({"query": q, "params": rows_list})
+
+    def truncate_table(self):
+        q = f"TRUNCATE ads"
+        self.queue.put({"query": q, "params": None})
+
+    def delete_records(self, source_name):
+        q = f'DELETE FROM ads WHERE source = "{source_name}"'
+        self.queue.put({"query": q, "params": None})
