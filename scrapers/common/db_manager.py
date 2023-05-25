@@ -56,6 +56,7 @@ class DbManager:
                     self.cursor.execute(query)
                 self.db_connection.commit()
             except Exception as e:
+                self.db_connection.rollback()
                 print(f"An error occurred saving data: {e}")
 
             self.queue.task_done()
@@ -73,3 +74,9 @@ class DbManager:
     def delete_records(self, source_name):
         q = f'DELETE FROM ads WHERE source = "{source_name}"'
         self.queue.put({"query": q, "params": None})
+
+    def replace_records(self, rows_list):
+        q = "REPLACE INTO ads " \
+            "(title, date, place, category, description, price, post_id, link_post, link_image, source) VALUES " \
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+        self.queue.put({"query": q, "params": rows_list})
