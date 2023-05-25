@@ -11,6 +11,6 @@ CREATE TABLE IF NOT EXISTS ads (
     price VARCHAR(50),
     post_id VARCHAR(50),
     link_post VARCHAR(200),
-    link_image VARCHAR(200),
+    link_image TEXT,
     source VARCHAR(50) NOT NULL
 );
