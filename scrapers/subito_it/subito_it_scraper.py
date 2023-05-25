@@ -13,9 +13,6 @@ class SubitoItScraper(BaseScraper):
 
     def scrape(self):
         print(f"Starting to scrape...")
-        # set this variable to True in order to keep track of the first request.
-        # if the first request returns data, we will clean all the old data, otherwise not
-        is_first_request = True
         # process all urls and for each of them scrape data from list page and also detail page
         for url in self.urls_list:
             # loop on all pages
@@ -35,12 +32,6 @@ class SubitoItScraper(BaseScraper):
                 if len(posts_list) == 0:
                     break
 
-                # since we don't want to loose data, clean old records only during the first request
-                # and if it returns something
-                if is_first_request is True:
-                    self.db_manager.delete_records(self.SOURCE_NAME)
-                    is_first_request = False
-
                 for post in posts_list:
                     post_link = post.find("a", href=True).attrs["href"]
 
@@ -56,7 +47,15 @@ class SubitoItScraper(BaseScraper):
                     if post_title:
                         post_title = post_title.text
                     else:
-                        print("Skipping post because mandatory attributes are null")
+                        print(f"Skipping post because title is null - {post_link}")
+                        continue
+
+                    post_id = soup_detail_page.find("span", class_="AdInfo_ad-info__id__g3sz1")
+                    if post_id:
+                        post_id = post_id.text
+                        post_id = post_id.replace("ID:", "").strip()
+                    else:
+                        print(f"Skipping post because post_id is null - {post_link}")
                         continue
 
                     post_date = soup_detail_page.find("span", class_="index-module_insertion-date__MU4AZ")
@@ -107,11 +106,6 @@ class SubitoItScraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    post_id = soup_detail_page.find("span", class_="AdInfo_ad-info__id__g3sz1")
-                    if post_id:
-                        post_id = post_id.text
-                        post_id = post_id.replace("ID:", "").strip()
-
                     link_image = soup_detail_page.find("img", class_="Carousel_image__3muz6")
                     if link_image:
                         link_image = link_image.get("src")
@@ -121,6 +115,8 @@ class SubitoItScraper(BaseScraper):
 
                 self.page_number += 1
 
-                if self.page_number % 20 == 0:
-                    self.db_manager.insert_data(rows_list=self.results)
+                if self.page_number % 10 == 0:
+                    self.db_manager.replace_records(rows_list=self.results)
                     self.results = []
+
+        self.page_number = 1

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS ads (
     category VARCHAR(50),
     description TEXT,
     price VARCHAR(50),
-    post_id VARCHAR(50),
+    post_id VARCHAR(50) NOT NULL UNIQUE,
     link_post VARCHAR(200),
     link_image TEXT,
     source VARCHAR(50) NOT NULL

@@ -23,7 +23,7 @@ else:
 
 # run the scraper and schedule it every 6 hours
 scraper.scrape()
-schedule.every(6).hours.do(scraper.scrape)
+schedule.every(1).hours.do(scraper.scrape)
 
 # apply all the pending schedules
 while True:

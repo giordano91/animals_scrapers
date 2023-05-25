@@ -11,9 +11,6 @@ class AnnunciAnimaliScraper(BaseScraper):
 
     def scrape(self):
         print(f"Starting to scrape...")
-        # set this variable to True in order to keep track of the first request.
-        # if the first request returns data, we will clean all the old data, otherwise not
-        is_first_request = True
         # process all urls and for each of them scrape data from list page and also detail page
         for url in self.urls_list:
             # loop on all pages
@@ -34,12 +31,6 @@ class AnnunciAnimaliScraper(BaseScraper):
                 if len(posts_list) == 0:
                     break
 
-                # since we don't want to loose data, clean old records only during the first request
-                # and if it returns something
-                if is_first_request is True:
-                    self.db_manager.delete_records(self.SOURCE_NAME)
-                    is_first_request = False
-
                 for post in posts_list:
                     post_link = post.attrs["href"]
                     post_link_url = f"{self.BASE_URL}{post_link}"
@@ -56,7 +47,25 @@ class AnnunciAnimaliScraper(BaseScraper):
                     if post_title:
                         post_title = post_title.text
                     else:
-                        print("Skipping post because mandatory attributes are null")
+                        print(f"Skipping post because title is null - {post_link_url}")
+                        continue
+
+                    post_id = None
+                    ads_info_container = soup_detail_page.find("div",
+                                                               {"data-component": "ListingDetailsSectionParameters"})
+                    ads_info_div_list = ads_info_container.find_all("div", {"data-testid": "details-parameter"}) or []
+                    for ads_info in ads_info_div_list:
+                        span_list = ads_info.find_all("span")
+                        if span_list and isinstance(span_list, list) is True:
+                            if len(span_list) == 2:
+
+                                # post_id
+                                if span_list[0].text.lower() == "id annuncio":
+                                    post_id = span_list[1].text
+                                    break
+
+                    if post_id is None:
+                        print(f"Skipping post because post_id is null - {post_link_url}")
                         continue
 
                     post_date = None
@@ -79,17 +88,6 @@ class AnnunciAnimaliScraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    ads_info_container = soup_detail_page.find("div",
-                                                               {"data-component": "ListingDetailsSectionParameters"})
-                    ads_info_list = ads_info_container.find_all("span", {"data-testid": "detail-value-common"})
-
-                    post_id = None
-                    if ads_info_list and isinstance(ads_info_list, list) is True:
-
-                        # 9 -> post id
-                        if len(ads_info_list) >= 9:
-                            post_id = ads_info_list[9].text
-
                     link_image = soup_detail_page.find("img", {"data-nimg": "future-fill"})
                     if link_image:
                         link_image = link_image.get("src")
@@ -99,6 +97,8 @@ class AnnunciAnimaliScraper(BaseScraper):
 
                 self.page_number += 1
 
-                if self.page_number % 20 == 0:
-                    self.db_manager.insert_data(rows_list=self.results)
+                if self.page_number % 10 == 0:
+                    self.db_manager.replace_records(rows_list=self.results)
                     self.results = []
+
+            self.page_number = 1
