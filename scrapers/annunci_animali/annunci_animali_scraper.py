@@ -65,7 +65,7 @@ class AnnunciAnimaliScraper(BaseScraper):
                     if post_place:
                         post_place = post_place.text
 
-                    post_category = "Cane"
+                    post_category = "Cani"
 
                     post_description_div = soup_detail_page.find("div", {"data-testid": "listing-description"})
                     post_description = post_description_div.find_all("span") if post_description_div else []
@@ -79,11 +79,18 @@ class AnnunciAnimaliScraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    post_id = soup_detail_page.find("span", {"data-testid": "detail-value-common"})
-                    if post_id:
-                        post_id = post_id.text
+                    ads_info_container = soup_detail_page.find("div",
+                                                               {"data-component": "ListingDetailsSectionParameters"})
+                    ads_info_list = ads_info_container.find_all("span", {"data-testid": "detail-value-common"})
 
-                    link_image = soup_detail_page.find("img", {"data-testid": "future-fill"})
+                    post_id = None
+                    if ads_info_list and isinstance(ads_info_list, list) is True:
+
+                        # 9 -> post id
+                        if len(ads_info_list) >= 9:
+                            post_id = ads_info_list[9].text
+
+                    link_image = soup_detail_page.find("img", {"data-nimg": "future-fill"})
                     if link_image:
                         link_image = link_image.get("src")
 

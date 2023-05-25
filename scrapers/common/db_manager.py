@@ -6,6 +6,11 @@ import mysql.connector
 
 
 class DbManager:
+    """This class is a database wrapper.
+    Since it is shared between all the scrapers, it was designed as singleton.
+    Each scraper use this class to truncate table, delete or insert records in the ads table.
+    To avoid conflicts during the execution of the queries, everything is consumed in a queue by a thread.
+    """
 
     _instance = None
 
@@ -20,28 +25,39 @@ class DbManager:
         self.cursor = self.db_connection.cursor()
 
         # init queue mechanism
-        # in this way the db manager is shared between all the services
+        # in this way the db manager is shared between all the services without conflicts
         self.queue = Queue()
         self.worker_thread = Thread(target=self._process_queue)
         self.worker_thread.start()
 
     def __new__(cls, *args, **kwargs):
+        """Manage singleton feature"""
         if not cls._instance:
             cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
 
     def _process_queue(self):
+        """Aim of this function is to consume the queue with all the queries.
+        Each element of the queue contains a dict with the following structure:
+        {"query": <query_string>, "params": None|list}
+
+        A separated thread (see init of the class) execute the query and remove the task from the queue.
+        Since we don't want errors, if something during the query execution fails, simply skip the record.
+        """
         while True:
             data_dict = self.queue.get()
             query = data_dict.get("query")
             params = data_dict.get("params")
 
-            if params:
-                self.cursor.executemany(query, params)
-            else:
-                self.cursor.execute(query)
+            try:
+                if params:
+                    self.cursor.executemany(query, params)
+                else:
+                    self.cursor.execute(query)
+                self.db_connection.commit()
+            except Exception as e:
+                print(f"An error occurred saving data: {e}")
 
-            self.db_connection.commit()
             self.queue.task_done()
 
     def insert_data(self, rows_list):
