@@ -77,6 +77,7 @@ class DbManager:
 
     def replace_records(self, rows_list):
         q = "REPLACE INTO ads " \
-            "(title, date, place, category, description, price, post_id, link_post, link_image, source) VALUES " \
-            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+            "(title, post_date, birthdate, place, description, price, post_id, link_post, link_image, source, " \
+            "breed_id, species_id) VALUES " \
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
         self.queue.put({"query": q, "params": rows_list})

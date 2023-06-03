@@ -1,10 +1,13 @@
 import datetime
+import json
+import os
+from datetime import timedelta
 
 from bs4 import BeautifulSoup
 
 from scrapers.common.common_scrapers import BaseScraper
-from scrapers.common.exceptions import RequestFailed
 from scrapers.common.constants import ITALIAN_MONTHS
+from scrapers.common.exceptions import RequestFailed
 
 
 class SubitoItScraper(BaseScraper):
@@ -12,6 +15,8 @@ class SubitoItScraper(BaseScraper):
     SOURCE_NAME = "subito_it"
 
     def scrape(self):
+        num_pages_save_records = int(os.environ["NUM_PAGES_SAVE_RECORDS"])
+
         print(f"Starting to scrape...")
         # process all urls and for each of them scrape data from list page and also detail page
         for url in self.urls_list:
@@ -74,10 +79,9 @@ class SubitoItScraper(BaseScraper):
                             hour_minutes_split = hour_minutes.split(":")
                             hour = hour_minutes_split[0]
                             minutes = hour_minutes_split[1]
-                            today = datetime.datetime.today()
-                            post_date = today.replace(day=today.day-1,
-                                                      hour=int(hour), minute=int(minutes),
-                                                      second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+                            yesterday = datetime.datetime.today() - timedelta(1)
+                            post_date = yesterday.replace(hour=int(hour), minute=int(minutes),
+                                                          second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
                         else:
                             date_split = post_date.split(" ")
                             day = date_split[0]
@@ -94,9 +98,12 @@ class SubitoItScraper(BaseScraper):
                     if post_place:
                         post_place = post_place.text
 
-                    post_category = soup_detail_page.find("span", class_="feature-list_value__pgiul")
-                    if post_category:
-                        post_category = post_category.text
+                    puppy_birthdate = None
+
+                    # TODO: Uncomment when the species are decided
+                    # post_category = soup_detail_page.find("span", class_="feature-list_value__pgiul")
+                    # if post_category:
+                    #     post_category = post_category.text
 
                     post_description = soup_detail_page.find("p", class_="AdDescription_description__gUbvH")
                     if post_description:
@@ -106,16 +113,19 @@ class SubitoItScraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    link_image = soup_detail_page.find("img", class_="Carousel_image__3muz6")
-                    if link_image:
-                        link_image = link_image.get("src")
+                    link_images = [img.get("src") for img in soup_detail_page.find_all("img",
+                                                                                       class_="Carousel_image__3muz6")]
 
-                    self.results.append((post_title, post_date, post_place, post_category, post_description, price,
-                                         post_id, post_link, link_image, self.SOURCE_NAME))
+                    breed_id = None
+                    species_id = None
+
+                    self.results.append((post_title, post_date, puppy_birthdate, post_place, post_description, price,
+                                         post_id, post_link, json.dumps(link_images), self.SOURCE_NAME, breed_id,
+                                         species_id))
 
                 self.page_number += 1
 
-                if self.page_number % 10 == 0:
+                if self.page_number % num_pages_save_records == 0:
                     self.db_manager.replace_records(rows_list=self.results)
                     self.results = []
 

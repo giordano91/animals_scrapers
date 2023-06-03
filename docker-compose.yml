@@ -17,6 +17,7 @@ services:
       dockerfile: ./docker_files/subito_it_scraper.Dockerfile
     env_file:
       - env_files/.env_mysql
+      - env_files/.env_subito_it
     depends_on:
       - mysql_db
     command:
@@ -29,6 +30,7 @@ services:
       dockerfile: ./docker_files/annunci_animali_scraper.Dockerfile
     env_file:
       - env_files/.env_mysql
+      - env_files/.env_annunci_animali
     depends_on:
       - mysql_db
     command:
@@ -41,6 +43,7 @@ services:
       dockerfile: ./docker_files/my_pet_24_scraper.Dockerfile
     env_file:
       - env_files/.env_mysql
+      - env_files/.env_my_pet_24
     depends_on:
       - mysql_db
     command:

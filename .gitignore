@@ -122,6 +122,9 @@ celerybeat.pid
 # Environments
 .env
 env_files/.env_mysql
+env_files/.env_subito_it
+env_files/.env_annunci_animali
+env_files/.env_my_pet_24
 .venv
 env/
 venv/
