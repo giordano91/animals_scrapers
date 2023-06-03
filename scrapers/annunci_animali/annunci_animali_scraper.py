@@ -1,3 +1,6 @@
+import json
+import os
+
 from bs4 import BeautifulSoup
 
 from scrapers.common.common_scrapers import BaseScraper
@@ -10,6 +13,8 @@ class AnnunciAnimaliScraper(BaseScraper):
     SOURCE_NAME = "annunci_animali"
 
     def scrape(self):
+        num_pages_save_records = int(os.environ["NUM_PAGES_SAVE_RECORDS"])
+
         print(f"Starting to scrape...")
         # process all urls and for each of them scrape data from list page and also detail page
         for url in self.urls_list:
@@ -69,12 +74,11 @@ class AnnunciAnimaliScraper(BaseScraper):
                         continue
 
                     post_date = None
+                    puppy_birthdate = None
 
                     post_place = soup_detail_page.find("a", {"data-testid": "detail-value-search"})
                     if post_place:
                         post_place = post_place.text
-
-                    post_category = "Cani"
 
                     post_description_div = soup_detail_page.find("div", {"data-testid": "listing-description"})
                     post_description = post_description_div.find_all("span") if post_description_div else []
@@ -88,16 +92,23 @@ class AnnunciAnimaliScraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    link_image = soup_detail_page.find("img", {"data-nimg": "future-fill"})
-                    if link_image:
-                        link_image = link_image.get("src")
+                    link_images = []
+                    gallery_div_list = soup_detail_page.find_all("div", class_="image-gallery-image")
+                    for gallery_div in gallery_div_list:
+                        image_obj = gallery_div.find("img", {"data-nimg": "future-fill"})
+                        if image_obj:
+                            link_images.append(image_obj.get("src"))
 
-                    self.results.append((post_title, post_date, post_place, post_category, post_description, price,
-                                         post_id, post_link, link_image, self.SOURCE_NAME))
+                    breed_id = None
+                    species_id = None
+
+                    self.results.append((post_title, post_date, puppy_birthdate, post_place, post_description, price,
+                                         post_id, post_link, json.dumps(link_images), self.SOURCE_NAME, breed_id,
+                                         species_id))
 
                 self.page_number += 1
 
-                if self.page_number % 10 == 0:
+                if self.page_number % num_pages_save_records == 0:
                     self.db_manager.replace_records(rows_list=self.results)
                     self.results = []
 

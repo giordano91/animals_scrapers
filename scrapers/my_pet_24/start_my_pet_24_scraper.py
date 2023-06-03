@@ -1,3 +1,5 @@
+import os
+import json
 import schedule
 import time
 
@@ -5,14 +7,14 @@ from scrapers.common.exceptions import DbConnectionError
 from my_pet_24_scraper import MyPet24Scraper
 
 
-urls_list = [
-    "https://mypet24.it/tutti-gli-annunci/?af_page={}&aff-cpt=1&category=181&razza&level&location&latitude&longitude"
-]
+URL_LIST = json.loads(os.environ["URL_LIST"])
+DB_CONNECTION_RETRIES = json.loads(os.environ["DB_CONNECTION_RETRIES"])
+SCHEDULE_HOURS = int(os.environ["SCHEDULE_HOURS"])
 
-retries = [2, 5, 10, 15]
-for time_to_sleep in retries:
+
+for time_to_sleep in DB_CONNECTION_RETRIES:
     try:
-        scraper = MyPet24Scraper(urls_list)
+        scraper = MyPet24Scraper(URL_LIST)
     except Exception:
         print(f"mysql_db service is not up and running yet. Wait '{time_to_sleep}' seconds and try again")
         time.sleep(time_to_sleep)
@@ -23,7 +25,7 @@ else:
 
 # run the scraper and schedule it every 6 hours
 scraper.scrape()
-schedule.every(1).hours.do(scraper.scrape)
+schedule.every(SCHEDULE_HOURS).hours.do(scraper.scrape)
 
 # apply all the pending schedules
 while True:

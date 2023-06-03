@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 import unicodedata
 
 from bs4 import BeautifulSoup
@@ -12,6 +14,8 @@ class MyPet24Scraper(BaseScraper):
     SOURCE_NAME = "my_pet_24"
 
     def scrape(self):
+        num_pages_save_records = int(os.environ["NUM_PAGES_SAVE_RECORDS"])
+
         print(f"Starting to scrape...")
         # process all urls and for each of them scrape data from list page and also detail page
         for url in self.urls_list:
@@ -71,7 +75,7 @@ class MyPet24Scraper(BaseScraper):
                         print(f"Skipping post because post_id is null - {post_link}")
                         continue
 
-                    post_category = "Cani"
+                    puppy_birthdate = None
 
                     post_description = soup_detail_page.find("div", class_="post-content")
                     if post_description:
@@ -81,16 +85,18 @@ class MyPet24Scraper(BaseScraper):
                     if price:
                         price = price.text
 
-                    link_image = soup_detail_page.find("img", class_="attachment-full")
-                    if link_image:
-                        link_image = link_image.get("src")
+                    link_images = [img.get("src") for img in soup_detail_page.find_all("img", class_="attachment-full")]
 
-                    self.results.append((post_title, post_date, post_place, post_category, post_description, price,
-                                         post_id, post_link, link_image, self.SOURCE_NAME))
+                    breed_id = None
+                    species_id = None
+
+                    self.results.append((post_title, post_date, puppy_birthdate, post_place, post_description, price,
+                                         post_id, post_link, json.dumps(link_images), self.SOURCE_NAME, breed_id,
+                                         species_id))
 
                 self.page_number += 1
 
-                if self.page_number % 10 == 0:
+                if self.page_number % num_pages_save_records == 0:
                     self.db_manager.replace_records(rows_list=self.results)
                     self.results = []
 
