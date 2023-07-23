@@ -1,10 +1,9 @@
-# charlie_feeder
+# animals_scrapers
 
 ## Introduction
-Aim of this project is to collect data from some external platforms to feed Charlie web application.  
+Aim of this project is to collect animals advs from some external platforms.  
 At the moment the idea is to implement three scrapers; one for `subito.it`, one for `mypet24` and one for `annunci_animali`.  
 Each scraper is responsible for taking data from the site and saving all the information in a MySQL table (`ads`).  
-Charlie web application will fetch data from this table.    
 
 Scrapers (and the MySQL database) have been implemented to run as a docker service.  
 
